@@ -1,155 +1,161 @@
-:root{
-  --green:#2f8f5b;
-  --green-dark:#14532d;
-  --ink:#123524;
-  --muted:#4f6b5c;
-  --glass:rgba(255,255,255,.45);
-  --glass-border:rgba(255,255,255,.75);
-  --shadow:0 10px 35px rgba(47,143,91,.15);
-}
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:100px}
-body{
-  font-family:'Inter',Arial,Helvetica,sans-serif;
-  color:var(--ink);line-height:1.7;
-  background:linear-gradient(135deg,#e9f8ef 0%,#d3efde 50%,#eefaf3 100%);
-  background-attachment:fixed;min-height:100vh;
-}
-body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(90px);pointer-events:none}
-body::before{width:520px;height:520px;top:-120px;left:-120px;background:rgba(111,207,151,.55)}
-body::after{width:560px;height:560px;bottom:-160px;right:-140px;background:rgba(160,225,190,.6)}
+document.addEventListener('DOMContentLoaded', function () {
+  const $ = (s) => document.querySelector(s);
+  const msgs = $('#aiMessages');
+  const input = $('#aiInput');
+  const voiceBox = $('#aiVoice');
 
-.container{width:min(1200px,90%);margin:0 auto}
-.section{padding:70px 0}
-a{text-decoration:none;color:inherit}
-.muted{color:var(--muted)}
+  if (!msgs || !input) {
+    console.error('AI section not found: check that the AI section HTML is in index.html');
+    return;
+  }
 
-/* Glass */
-.glass{
-  background:var(--glass);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  border:1px solid var(--glass-border);
-  box-shadow:var(--shadow);
-  border-radius:24px;
-}
-.card{padding:32px;transition:.3s}
-.card:hover{transform:translateY(-6px);box-shadow:0 18px 45px rgba(47,143,91,.22)}
+  const synth = window.speechSynthesis;
+  let voice = null;
 
-/* Navbar */
-.nav-wrap{position:sticky;top:16px;z-index:100;width:min(1200px,92%);margin:16px auto 0}
-.navbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 12px 28px;border-radius:60px}
-.logo{font-size:26px;font-weight:800;color:var(--green-dark)}
-.logo span{color:var(--green)}
-.nav-links{display:flex;gap:30px;list-style:none}
-.nav-links a{font-size:14px;font-weight:600;color:var(--muted);transition:.3s}
-.nav-links a:hover{color:var(--green)}
-.nav-cta{background:var(--green);color:#fff;padding:10px 22px;border-radius:50px;font-size:14px;font-weight:700;transition:.3s}
-.nav-cta:hover{background:var(--green-dark)}
+  /* ---------- Pick a working voice ---------- */
+  function pickVoice() {
+    if (!synth) return;
+    const v = synth.getVoices();
+    if (!v.length) return;
+    voice =
+      v.find((x) => /en[-_]ZA/i.test(x.lang)) ||
+      v.find((x) => /en[-_](GB|US|AU)/i.test(x.lang)) ||
+      v.find((x) => /^en/i.test(x.lang)) ||
+      v[0];
+  }
+  pickVoice();
+  if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
 
-/* Buttons & pills */
-.btn{display:inline-block;padding:14px 28px;border-radius:50px;font-weight:700;font-size:14px;transition:.3s;white-space:nowrap}
-.btn-primary{background:var(--green);color:#fff;box-shadow:0 8px 20px rgba(47,143,91,.35)}
-.btn-primary:hover{background:var(--green-dark);transform:translateY(-3px)}
-.btn-glass{background:rgba(255,255,255,.5);border:1px solid var(--glass-border);color:var(--green-dark);backdrop-filter:blur(10px)}
-.btn-glass:hover{background:#fff;transform:translateY(-3px)}
-.btn-disabled{background:rgba(255,255,255,.5);border:1px dashed var(--green);color:var(--green-dark);cursor:default}
-.pill{display:inline-block;background:rgba(255,255,255,.6);border:1px solid var(--glass-border);color:var(--green-dark);padding:6px 16px;border-radius:50px;font-size:13px;font-weight:700;margin-bottom:18px}
+  /* ---------- Helpers to read the page ---------- */
+  const clean = (el) => (el ? el.innerText.replace(/\s+/g, ' ').trim() : '');
+  const all = (sel) => Array.from(document.querySelectorAll(sel));
+  const safe = (fn) => { try { return fn() || ''; } catch (e) { return ''; } };
 
-/* Headings */
-.heading{margin-bottom:40px}
-.heading p{color:var(--green);font-size:13px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
-.heading h2{font-size:42px;letter-spacing:-1.5px;color:var(--green-dark)}
+  const get = {
+    intro: () => safe(() => clean($('.hero-text'))),
+    about: () => safe(() => clean($('#about .about-text')) + ' ' + all('#about .info-item').map(clean).join('. ')),
+    skills: () => safe(() => 'Technical skills: ' + all('#skills .skill').map((c) => c.querySelector('h3').innerText + ', ' + c.querySelector('p').innerText).join('. ') + '.'),
+    experience: () => safe(() => clean($('#experience .experience'))),
+    projects: () => safe(() => 'Featured projects: ' + all('#projects .project').map((c) => c.querySelector('h3').innerText + '. ' + c.querySelector('p').innerText).join(' ')),
+    education: () => safe(() => all('#education .edu').map(clean).join(' ')),
+    cert: () => safe(() => clean($('.cert > div'))),
+    contact: () => safe(() => 'Contact details. ' + all('#contact .contact-item').map((c) => c.querySelector('strong').innerText + ': ' + c.querySelector('p').innerText).join('. ') + '.')
+  };
 
-/* Hero */
-.hero{display:grid;grid-template-columns:1.3fr .7fr;gap:50px;align-items:center;min-height:85vh;padding:60px 0}
-.hero h1{font-size:clamp(44px,7vw,84px);line-height:1;letter-spacing:-3px;margin-bottom:20px;color:var(--green-dark)}
-.hero h1 span{color:var(--green);display:block}
-.hero h2{font-size:21px;font-weight:600;margin-bottom:18px}
-.hero-text p{max-width:600px;color:var(--muted);font-size:17px;margin-bottom:32px}
-.hero-buttons{display:flex;gap:14px;flex-wrap:wrap}
-.hero-card{padding:40px;text-align:center}
-.avatar{width:110px;height:110px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6fcf97,#2f8f5b);box-shadow:0 10px 25px rgba(47,143,91,.4)}
-.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px;padding-top:24px;border-top:1px solid rgba(47,143,91,.2)}
-.hero-stats strong{display:block;font-size:22px;color:var(--green)}
-.hero-stats span{font-size:12px;color:var(--muted)}
+  const summary = () =>
+    'Sinentlantla Tshangase is a final-year BSc Information Technology student at North-West University in Johannesburg, aspiring to be a Software Developer with a focus on Data Analytics. ' +
+    get.skills() + ' ' + get.projects() + ' Work experience: ' + get.experience() + ' Education: ' + get.education() + ' ' + get.cert();
 
-/* About */
-.about-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:24px}
-.about-text p{color:var(--muted);margin-bottom:18px}
-.about-text p:last-child{margin-bottom:0}
-.info-list{display:flex;flex-direction:column;gap:16px}
-.info-item{display:flex;gap:16px;align-items:center;padding:22px 26px}
-.info-item span{font-size:26px}
-.info-item p{color:var(--muted);font-size:14px}
+  /* ---------- Answering ---------- */
+  const intents = [
+    [/summar|everything|overview|whole|all about/, summary],
+    [/skill|language|tech|program|stack|java|python|sql|c\+\+|c#|tools/, get.skills],
+    [/project|built|build|isibuko|umzimkhulu|helplift|demo/, get.projects],
+    [/certif|cyber|cisco|course/, get.cert],
+    [/educat|study|school|universit|degree|qualif|matric|nwu|college/, get.education],
+    [/experience|job|employ|brumby|worked/, get.experience],
+    [/contact|email|phone|call|reach|linkedin|github|hire|number/, get.contact],
+    [/\bcv\b|resume|download/, () => 'Use the "Download CV" button at the top of the page to download the CV.'],
+    [/who|about|introduce|yourself|tell me|location|live|where/, get.about],
+    [/hello|\bhi\b|hey|howzit/, () => "Hi! Ask me about Sinentlantla's skills, projects, education, experience or contact details."]
+  ];
 
-/* Skills */
-.skills-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
-.skill{padding:28px 22px}
-.icon{font-size:36px;margin-bottom:14px}
-.skill p,.project p,.edu p,.experience p,.contact-intro p{color:var(--muted);font-size:14px}
+  function fallback(q) {
+    const words = q.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+    const main = $('main');
+    const sentences = (main ? clean(main) : '').split(/(?<=[.!?])\s+/);
+    const hits = sentences
+      .map((s) => ({ s, n: words.filter((w) => s.toLowerCase().includes(w)).length }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n);
+    return hits.length
+      ? hits.slice(0, 2).map((x) => x.s).join(' ')
+      : "I couldn't find that in the portfolio. Try asking about skills, projects, education, experience or contact details.";
+  }
 
-/* Experience */
-.experience{display:grid;grid-template-columns:200px 1fr;gap:40px;padding:40px}
-.date{color:var(--green);font-weight:800;font-size:14px}
-.experience h3{font-size:24px}
-.experience h4,.edu h4{color:var(--green);margin-bottom:14px}
-.experience p{margin-bottom:8px}
+  function answer(q) {
+    const t = q.toLowerCase();
+    for (const [re, fn] of intents) {
+      if (re.test(t)) {
+        const r = fn();
+        if (r) return r;
+      }
+    }
+    return fallback(q);
+  }
 
-/* Projects */
-.projects-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
-.project{position:relative;display:flex;flex-direction:column;padding:36px}
-.num{position:absolute;top:24px;right:28px;font-weight:800;color:rgba(47,143,91,.45)}
-.project h3{margin-bottom:10px;font-size:20px}
-.project p{margin-bottom:20px}
-.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
-.tags span{background:rgba(255,255,255,.65);border:1px solid var(--glass-border);color:var(--green-dark);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700}
-.link{margin-top:18px;color:var(--green);font-weight:800;font-size:14px}
-.link:hover{color:var(--green-dark)}
+  /* ---------- Chat UI ---------- */
+  function add(text, who) {
+    const d = document.createElement('div');
+    d.className = 'ai-msg ' + who;
+    d.textContent = text;
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
 
-/* AI + Certificate banners */
-.ai-banner,.cert{display:flex;justify-content:space-between;align-items:center;gap:40px;padding:48px}
-.ai-banner{border:1.5px dashed rgba(47,143,91,.5)}
-.ai-banner h2,.cert h2{font-size:32px;color:var(--green-dark);margin-bottom:8px}
-.ai-banner p,.cert p{color:var(--muted);max-width:680px}
+  /* ---------- Speaking ---------- */
+  function speak(text) {
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+      add('Voice is not supported in this browser, but you can read the answer above.', 'bot');
+      return;
+    }
+    synth.cancel();
+    const chunks = text.match(/[^.!?:;]+[.!?:;]*/g) || [text];
+    setTimeout(function () {
+      chunks.forEach(function (c) {
+        c = c.trim();
+        if (!c) return;
+        const u = new SpeechSynthesisUtterance(c);
+        if (voice) { u.voice = voice; u.lang = voice.lang; }
+        u.rate = 1;
+        u.volume = 1;
+        synth.speak(u);
+      });
+    }, 150);
+  }
 
-/* Education */
-.education-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
-.edu{padding:36px}
-.edu h3{margin:10px 0 2px;font-size:21px}
+  function ask(q) {
+    q = (q || '').trim();
+    if (!q) return;
+    add(q, 'user');
+    const a = answer(q);
+    add(a, 'bot');
+    if (voiceBox && voiceBox.checked) speak(a);
+  }
 
-/* Contact */
-.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-.contact-intro{padding:44px}
-.contact-intro h3{font-size:34px;line-height:1.2;margin-bottom:16px;color:var(--green-dark)}
-.contact-list{display:flex;flex-direction:column;gap:14px}
-.contact-item{display:flex;align-items:center;gap:18px;padding:22px 26px;transition:.3s}
-.contact-item:hover{transform:translateX(8px);box-shadow:0 14px 35px rgba(47,143,91,.22)}
-.contact-item span{font-size:26px}
-.contact-item p{color:var(--muted);font-size:13px}
+  /* ---------- Buttons ---------- */
+  const on = (sel, fn) => { const el = $(sel); if (el) el.addEventListener('click', fn); };
 
-/* Footer */
-footer{padding:20px 0 40px}
-.footer-box{text-align:center;padding:36px}
-.footer-box p{color:var(--muted)}
-.footer-box small{display:block;margin-top:14px;color:var(--muted);font-size:12px}
+  on('#aiSend', function () { ask(input.value); input.value = ''; });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { ask(input.value); input.value = ''; }
+  });
 
-/* Responsive */
-@media(max-width:1000px){
-  .skills-grid{grid-template-columns:repeat(3,1fr)}
-  .nav-links{gap:18px}
-}
-@media(max-width:900px){
-  .nav-links{display:none}
-  .hero,.about-grid,.contact-grid{grid-template-columns:1fr}
-  .projects-grid,.education-grid{grid-template-columns:1fr}
-  .skills-grid{grid-template-columns:repeat(2,1fr)}
-  .ai-banner,.cert{flex-direction:column;align-items:flex-start;padding:34px}
-  .experience{grid-template-columns:1fr;gap:12px}
-}
-@media(max-width:600px){
-  .heading h2{font-size:34px}
-  .skills-grid{grid-template-columns:1fr}
-  .section{padding:50px 0}
-  .contact-intro h3,.ai-banner h2,.cert h2{font-size:26px}
-}
+  all('.ai-chips button').forEach(function (b) {
+    b.addEventListener('click', function () { ask(b.getAttribute('data-q')); });
+  });
+
+  on('#aiSummary', function () {
+    const s = summary();
+    add('Summarise the portfolio', 'user');
+    add(s, 'bot');
+    if (voiceBox && voiceBox.checked) speak(s);
+  });
+
+  on('#aiReadAll', function () {
+    const parts = [
+      get.intro(), get.about(), get.skills(),
+      'Work experience. ' + get.experience(), get.projects(),
+      'Education. ' + get.education(), get.cert(), get.contact()
+    ].filter(Boolean);
+    const full = parts.join(' ');
+    add('Read my whole portfolio aloud', 'user');
+    add(full, 'bot');
+    speak(full);
+  });
+
+  on('#aiStop', function () { if (synth) synth.cancel(); });
+  window.addEventListener('beforeunload', function () { if (synth) synth.cancel(); });
+
+  add("👋 Hi! I read Sinentlantla's portfolio so you don't have to. Tap a button or ask me a question.", 'bot');
+});
