@@ -19,7 +19,6 @@
       <li><a href="#skills">Skills</a></li>
       <li><a href="#experience">Experience</a></li>
       <li><a href="#projects">Projects</a></li>
-      <li><a href="#assistant">AI</a></li>
       <li><a href="#education">Education</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
@@ -120,28 +119,6 @@
   </div>
 </section>
 
-<section id="assistant" class="section container">
-  <div class="heading"><p>Don't want to read? Let AI read it for you</p><h2>AI Portfolio Assistant</h2></div>
-  <div class="glass ai-box">
-    <div class="ai-top">
-      <div class="ai-title"><span class="ai-dot"></span> Portfolio Assistant</div>
-      <span class="ai-state" id="aiState">Ready</span>
-    </div>
-
-    <div class="ai-screen">
-      <div class="ai-label" id="aiTitle">Press the button below</div>
-      <div class="ai-now" id="aiNow">I will read the whole portfolio to you, from start to finish.</div>
-      <div class="ai-progress"><div id="aiBar"></div></div>
-    </div>
-
-    <div class="ai-actions">
-      <button type="button" class="btn btn-primary" id="aiPlay">▶ Press to let AI read my portfolio</button>
-      <button type="button" class="btn btn-glass" id="aiStop">⏹ Stop</button>
-    </div>
-    <p class="ai-hint" id="aiHint"></p>
-  </div>
-</section>
-
 <section id="education" class="section container">
   <div class="heading"><p>My academic journey</p><h2>Education</h2></div>
   <div class="education-grid">
@@ -198,149 +175,5 @@
   </div>
 </footer>
 
-<script>
-(function () {
-  var synth = window.speechSynthesis;
-  var playBtn = document.getElementById('aiPlay');
-  var stopBtn = document.getElementById('aiStop');
-  var titleEl = document.getElementById('aiTitle');
-  var nowEl = document.getElementById('aiNow');
-  var barEl = document.getElementById('aiBar');
-  var hintEl = document.getElementById('aiHint');
-  var stateEl = document.getElementById('aiState');
-
-  var voice = null, token = 0, running = false, current = null;
-
-  function pickVoice() {
-    if (!synth) return;
-    var v = synth.getVoices();
-    if (!v || !v.length) return;
-    voice = v.filter(function (x) { return /en[-_]ZA/i.test(x.lang); })[0] ||
-            v.filter(function (x) { return /en[-_](GB|US|AU)/i.test(x.lang); })[0] ||
-            v.filter(function (x) { return /^en/i.test(x.lang); })[0] || null;
-  }
-  pickVoice();
-  if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
-
-  /* ----- read the page ----- */
-  function tidy(s) {
-    return (s || '')
-      .replace(/[\u{1F000}-\u{1FFFF}\u2600-\u27BF\uFE0F]/gu, '')
-      .replace(/[·→]/g, ' ')
-      .replace(/\s*—\s*/g, ' to ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  function txt(sel) { var e = document.querySelector(sel); return e ? tidy(e.innerText) : ''; }
-  function list(sel, fn) { return Array.prototype.slice.call(document.querySelectorAll(sel)).map(fn); }
-  function end(s) { return /[.!?]$/.test(s) ? s : s + '.'; }
-
-  function build() {
-    return [
-      { t: 'Introduction', x: 'Hello, I am ' + txt('.hero-text h1') + '. ' + end(txt('.hero-text h2')) + ' ' + txt('.hero-text > p') },
-      { t: 'About me', x: txt('#about .about-text') + ' ' + list('#about .info-item', function (e) { return end(tidy(e.innerText)); }).join(' ') },
-      { t: 'Technical skills', x: 'Technical skills. ' + list('#skills .skill', function (c) { return end(tidy(c.querySelector('h3').innerText + ': ' + c.querySelector('p').innerText)); }).join(' ') },
-      { t: 'Work experience', x: 'Work experience. ' + txt('#experience .experience') },
-      { t: 'Featured projects', x: 'Featured projects. ' + list('#projects .project', function (c) { return end(tidy(c.querySelector('h3').innerText)) + ' ' + end(tidy(c.querySelector('p').innerText)); }).join(' ') },
-      { t: 'Education', x: 'Education. ' + list('#education .edu', function (e) { return end(tidy(e.innerText)); }).join(' ') },
-      { t: 'Certification', x: txt('.cert > div') },
-      { t: 'Contact', x: 'Contact details. ' + list('#contact .contact-item', function (c) { return end(tidy(c.querySelector('strong').innerText + ': ' + c.querySelector('p').innerText)); }).join(' ') },
-      { t: 'The end', x: 'That is everything. Thank you for listening to my portfolio.' }
-    ];
-  }
-
-  function spoken(s) {
-    return s.replace(/C\+\+/g, 'C plus plus').replace(/C#/g, 'C sharp')
-            .replace(/@/g, ' at ').replace(/\.com/g, ' dot com').replace(/&/g, ' and ');
-  }
-
-  function splitSentences(text) {
-    return text.replace(/([.!?])\s+/g, '$1|').split('|').filter(function (s) { return s.trim(); });
-  }
-
-  /* ----- UI ----- */
-  function setIdle() {
-    running = false;
-    playBtn.disabled = false;
-    playBtn.textContent = '▶ Press to let AI read my portfolio';
-    stateEl.textContent = 'Ready';
-  }
-
-  function stopAll() {
-    token++;
-    if (synth) synth.cancel();
-    setIdle();
-    titleEl.textContent = 'Stopped';
-    nowEl.textContent = 'Press the button to hear my portfolio again.';
-    barEl.style.width = '0%';
-  }
-
-  /* ----- main ----- */
-  function start() {
-    if (running) return;
-    var queue = [];
-    build().forEach(function (sec) {
-      splitSentences(sec.x).forEach(function (s) { queue.push({ t: sec.t, s: s }); });
-    });
-    if (!queue.length) return;
-
-    token++;
-    var my = token, i = 0, started = false, silent = false;
-    running = true;
-    playBtn.disabled = true;
-    playBtn.textContent = '🔊 Reading…';
-    stateEl.textContent = 'Reading';
-    hintEl.textContent = '';
-
-    function next() {
-      if (my !== token) return;
-      if (i >= queue.length) {
-        barEl.style.width = '100%';
-        setIdle();
-        titleEl.textContent = 'Finished';
-        return;
-      }
-      var item = queue[i];
-      titleEl.textContent = item.t;
-      nowEl.textContent = item.s;
-      barEl.style.width = Math.round((i / queue.length) * 100) + '%';
-
-      if (silent || !synth || typeof SpeechSynthesisUtterance === 'undefined') {
-        setTimeout(function () { if (my !== token) return; i++; next(); }, Math.max(1500, item.s.length * 60));
-        return;
-      }
-
-      var u = new SpeechSynthesisUtterance(spoken(item.s));
-      if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = 'en-US'; }
-      u.rate = 1; u.volume = 1;
-      u.onstart = function () { started = true; };
-      u.onend = function () { if (my !== token) return; i++; next(); };
-      u.onerror = function (e) {
-        if (my !== token) return;
-        if (e && (e.error === 'interrupted' || e.error === 'canceled')) return;
-        i++; next();
-      };
-      current = u; /* keep a reference so the browser doesn't drop it */
-      synth.speak(u);
-    }
-
-    if (synth) synth.cancel();
-    next();
-
-    /* if no sound starts, keep reading the text on screen */
-    setTimeout(function () {
-      if (my !== token || started || silent) return;
-      silent = true;
-      if (synth) synth.cancel();
-      hintEl.textContent = 'No sound? Turn your volume up, take your phone off silent, or try Chrome. The text is still being read on screen.';
-      next();
-    }, 4000);
-  }
-
-  playBtn.addEventListener('click', start);
-  stopBtn.addEventListener('click', stopAll);
-  window.addEventListener('beforeunload', function () { if (synth) synth.cancel(); });
-})();
-</script>
 </body>
 </html>
