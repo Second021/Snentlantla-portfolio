@@ -1,161 +1,177 @@
-document.addEventListener('DOMContentLoaded', function () {
-  const $ = (s) => document.querySelector(s);
-  const msgs = $('#aiMessages');
-  const input = $('#aiInput');
-  const voiceBox = $('#aiVoice');
+:root{
+  --accent:#ffffff;
+  --accent-dark:#d4d4d4;
+  --on-accent:#0a0a0a;
+  --ink:#f5f5f5;
+  --muted:#a3a3a3;
+  --glass:rgba(255,255,255,.07);
+  --glass-strong:rgba(255,255,255,.12);
+  --glass-border:rgba(255,255,255,.18);
+  --shadow:0 10px 40px rgba(0,0,0,.5);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:100px}
+body{
+  font-family:'Inter',Arial,Helvetica,sans-serif;
+  color:var(--ink);line-height:1.7;
+  background:linear-gradient(135deg,#050505 0%,#141414 50%,#080808 100%);
+  background-attachment:fixed;min-height:100vh;
+}
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;filter:blur(100px);pointer-events:none}
+body::before{width:520px;height:520px;top:-120px;left:-120px;background:rgba(255,255,255,.16)}
+body::after{width:560px;height:560px;bottom:-160px;right:-140px;background:rgba(180,180,180,.14)}
 
-  if (!msgs || !input) {
-    console.error('AI section not found: check that the AI section HTML is in index.html');
-    return;
-  }
+.container{width:min(1200px,90%);margin:0 auto}
+.section{padding:70px 0}
+a{text-decoration:none;color:inherit}
+.muted{color:var(--muted)}
 
-  const synth = window.speechSynthesis;
-  let voice = null;
+/* Glass */
+.glass{
+  background:var(--glass);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border:1px solid var(--glass-border);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.12);
+  border-radius:24px;
+}
+.card{padding:32px;transition:.3s}
+.card:hover{transform:translateY(-6px);background:var(--glass-strong);box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18)}
 
-  /* ---------- Pick a working voice ---------- */
-  function pickVoice() {
-    if (!synth) return;
-    const v = synth.getVoices();
-    if (!v.length) return;
-    voice =
-      v.find((x) => /en[-_]ZA/i.test(x.lang)) ||
-      v.find((x) => /en[-_](GB|US|AU)/i.test(x.lang)) ||
-      v.find((x) => /^en/i.test(x.lang)) ||
-      v[0];
-  }
-  pickVoice();
-  if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
+/* Navbar */
+.nav-wrap{position:sticky;top:16px;z-index:100;width:min(1200px,92%);margin:16px auto 0}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 12px 28px;border-radius:60px}
+.logo{font-size:26px;font-weight:800;color:#fff}
+.logo span{color:var(--muted)}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{font-size:14px;font-weight:600;color:var(--muted);transition:.3s}
+.nav-links a:hover{color:#fff}
+.nav-cta{background:var(--accent);color:var(--on-accent);padding:10px 22px;border-radius:50px;font-size:14px;font-weight:700;transition:.3s}
+.nav-cta:hover{background:var(--accent-dark)}
 
-  /* ---------- Helpers to read the page ---------- */
-  const clean = (el) => (el ? el.innerText.replace(/\s+/g, ' ').trim() : '');
-  const all = (sel) => Array.from(document.querySelectorAll(sel));
-  const safe = (fn) => { try { return fn() || ''; } catch (e) { return ''; } };
+/* Buttons & pills */
+.btn{display:inline-block;padding:14px 28px;border-radius:50px;font-weight:700;font-size:14px;transition:.3s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:0 8px 24px rgba(255,255,255,.15)}
+.btn-primary:hover{background:var(--accent-dark);transform:translateY(-3px)}
+.btn-glass{background:var(--glass);border:1px solid var(--glass-border);color:#fff;backdrop-filter:blur(10px)}
+.btn-glass:hover{background:var(--glass-strong);transform:translateY(-3px)}
+.pill{display:inline-block;background:var(--glass);border:1px solid var(--glass-border);color:#fff;padding:6px 16px;border-radius:50px;font-size:13px;font-weight:700;margin-bottom:18px}
 
-  const get = {
-    intro: () => safe(() => clean($('.hero-text'))),
-    about: () => safe(() => clean($('#about .about-text')) + ' ' + all('#about .info-item').map(clean).join('. ')),
-    skills: () => safe(() => 'Technical skills: ' + all('#skills .skill').map((c) => c.querySelector('h3').innerText + ', ' + c.querySelector('p').innerText).join('. ') + '.'),
-    experience: () => safe(() => clean($('#experience .experience'))),
-    projects: () => safe(() => 'Featured projects: ' + all('#projects .project').map((c) => c.querySelector('h3').innerText + '. ' + c.querySelector('p').innerText).join(' ')),
-    education: () => safe(() => all('#education .edu').map(clean).join(' ')),
-    cert: () => safe(() => clean($('.cert > div'))),
-    contact: () => safe(() => 'Contact details. ' + all('#contact .contact-item').map((c) => c.querySelector('strong').innerText + ': ' + c.querySelector('p').innerText).join('. ') + '.')
-  };
+/* Headings */
+.heading{margin-bottom:40px}
+.heading p{color:var(--muted);font-size:13px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
+.heading h2{font-size:42px;letter-spacing:-1.5px;color:#fff}
 
-  const summary = () =>
-    'Sinentlantla Tshangase is a final-year BSc Information Technology student at North-West University in Johannesburg, aspiring to be a Software Developer with a focus on Data Analytics. ' +
-    get.skills() + ' ' + get.projects() + ' Work experience: ' + get.experience() + ' Education: ' + get.education() + ' ' + get.cert();
+/* Hero */
+.hero{display:grid;grid-template-columns:1.3fr .7fr;gap:50px;align-items:center;min-height:85vh;padding:60px 0}
+.hero h1{font-size:clamp(44px,7vw,84px);line-height:1;letter-spacing:-3px;margin-bottom:20px;color:#fff}
+.hero h1 span{color:var(--muted);display:block}
+.hero h2{font-size:21px;font-weight:600;margin-bottom:18px}
+.hero-text p{max-width:600px;color:var(--muted);font-size:17px;margin-bottom:32px}
+.hero-buttons{display:flex;gap:14px;flex-wrap:wrap}
+.hero-card{padding:40px;text-align:center}
+.avatar{width:110px;height:110px;margin:0 auto 20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:var(--on-accent);background:linear-gradient(135deg,#ffffff,#9a9a9a);box-shadow:0 10px 30px rgba(255,255,255,.2)}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:28px;padding-top:24px;border-top:1px solid var(--glass-border)}
+.hero-stats strong{display:block;font-size:22px;color:#fff}
+.hero-stats span{font-size:12px;color:var(--muted)}
 
-  /* ---------- Answering ---------- */
-  const intents = [
-    [/summar|everything|overview|whole|all about/, summary],
-    [/skill|language|tech|program|stack|java|python|sql|c\+\+|c#|tools/, get.skills],
-    [/project|built|build|isibuko|umzimkhulu|helplift|demo/, get.projects],
-    [/certif|cyber|cisco|course/, get.cert],
-    [/educat|study|school|universit|degree|qualif|matric|nwu|college/, get.education],
-    [/experience|job|employ|brumby|worked/, get.experience],
-    [/contact|email|phone|call|reach|linkedin|github|hire|number/, get.contact],
-    [/\bcv\b|resume|download/, () => 'Use the "Download CV" button at the top of the page to download the CV.'],
-    [/who|about|introduce|yourself|tell me|location|live|where/, get.about],
-    [/hello|\bhi\b|hey|howzit/, () => "Hi! Ask me about Sinentlantla's skills, projects, education, experience or contact details."]
-  ];
+/* About */
+.about-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:24px}
+.about-text p{color:var(--muted);margin-bottom:18px}
+.about-text p strong{color:#fff}
+.about-text p:last-child{margin-bottom:0}
+.info-list{display:flex;flex-direction:column;gap:16px}
+.info-item{display:flex;gap:16px;align-items:center;padding:22px 26px}
+.info-item span{font-size:26px}
+.info-item p{color:var(--muted);font-size:14px}
 
-  function fallback(q) {
-    const words = q.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
-    const main = $('main');
-    const sentences = (main ? clean(main) : '').split(/(?<=[.!?])\s+/);
-    const hits = sentences
-      .map((s) => ({ s, n: words.filter((w) => s.toLowerCase().includes(w)).length }))
-      .filter((x) => x.n > 0)
-      .sort((a, b) => b.n - a.n);
-    return hits.length
-      ? hits.slice(0, 2).map((x) => x.s).join(' ')
-      : "I couldn't find that in the portfolio. Try asking about skills, projects, education, experience or contact details.";
-  }
+/* Skills */
+.skills-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
+.skill{padding:28px 22px}
+.icon{font-size:36px;margin-bottom:14px}
+.skill p,.project p,.edu p,.experience p,.contact-intro p{color:var(--muted);font-size:14px}
 
-  function answer(q) {
-    const t = q.toLowerCase();
-    for (const [re, fn] of intents) {
-      if (re.test(t)) {
-        const r = fn();
-        if (r) return r;
-      }
-    }
-    return fallback(q);
-  }
+/* Experience */
+.experience{display:grid;grid-template-columns:200px 1fr;gap:40px;padding:40px}
+.date{color:#fff;font-weight:800;font-size:14px}
+.experience h3{font-size:24px}
+.experience h4,.edu h4{color:var(--muted);margin-bottom:14px}
+.experience p{margin-bottom:8px}
 
-  /* ---------- Chat UI ---------- */
-  function add(text, who) {
-    const d = document.createElement('div');
-    d.className = 'ai-msg ' + who;
-    d.textContent = text;
-    msgs.appendChild(d);
-    msgs.scrollTop = msgs.scrollHeight;
-  }
+/* Projects */
+.projects-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.project{position:relative;display:flex;flex-direction:column;padding:36px}
+.num{position:absolute;top:24px;right:28px;font-weight:800;color:rgba(255,255,255,.3)}
+.project h3{margin-bottom:10px;font-size:20px}
+.project p{margin-bottom:20px}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+.tags span{background:var(--glass);border:1px solid var(--glass-border);color:#fff;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700}
+.link{margin-top:18px;color:#fff;font-weight:800;font-size:14px}
+.link:hover{color:var(--muted)}
 
-  /* ---------- Speaking ---------- */
-  function speak(text) {
-    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
-      add('Voice is not supported in this browser, but you can read the answer above.', 'bot');
-      return;
-    }
-    synth.cancel();
-    const chunks = text.match(/[^.!?:;]+[.!?:;]*/g) || [text];
-    setTimeout(function () {
-      chunks.forEach(function (c) {
-        c = c.trim();
-        if (!c) return;
-        const u = new SpeechSynthesisUtterance(c);
-        if (voice) { u.voice = voice; u.lang = voice.lang; }
-        u.rate = 1;
-        u.volume = 1;
-        synth.speak(u);
-      });
-    }, 150);
-  }
+/* AI Assistant */
+.ai-box{padding:36px;max-width:900px;margin:0 auto}
+.ai-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+.ai-title{font-weight:800;color:#fff;display:flex;align-items:center;gap:10px}
+.ai-dot{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.2)}
+.ai-state{font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--glass-border);padding:4px 14px;border-radius:50px}
+.ai-screen{padding:28px;min-height:190px;background:rgba(0,0,0,.35);border:1px solid var(--glass-border);border-radius:20px;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+.ai-label{color:var(--muted);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.ai-now{font-size:20px;line-height:1.6;color:#fff;font-weight:500}
+.ai-progress{height:6px;background:rgba(255,255,255,.12);border-radius:10px;overflow:hidden}
+.ai-progress div{height:100%;width:0;background:#fff;border-radius:10px;transition:width .4s}
+.ai-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.ai-actions .btn{border:none;cursor:pointer;font-family:inherit}
+.ai-actions .btn-glass{border:1px solid var(--glass-border)}
+.ai-actions .btn:disabled{opacity:.6;cursor:default;transform:none}
+.ai-hint{margin-top:14px;font-size:13px;color:var(--muted);min-height:18px}
 
-  function ask(q) {
-    q = (q || '').trim();
-    if (!q) return;
-    add(q, 'user');
-    const a = answer(q);
-    add(a, 'bot');
-    if (voiceBox && voiceBox.checked) speak(a);
-  }
+/* Certificate */
+.cert{display:flex;justify-content:space-between;align-items:center;gap:40px;padding:48px}
+.cert h2{font-size:32px;color:#fff;margin-bottom:8px}
+.cert p{color:var(--muted);max-width:680px}
+.cert p strong{color:#fff}
 
-  /* ---------- Buttons ---------- */
-  const on = (sel, fn) => { const el = $(sel); if (el) el.addEventListener('click', fn); };
+/* Education */
+.education-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.edu{padding:36px}
+.edu h3{margin:10px 0 2px;font-size:21px}
 
-  on('#aiSend', function () { ask(input.value); input.value = ''; });
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { ask(input.value); input.value = ''; }
-  });
+/* Contact */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.contact-intro{padding:44px}
+.contact-intro h3{font-size:34px;line-height:1.2;margin-bottom:16px;color:#fff}
+.contact-list{display:flex;flex-direction:column;gap:14px}
+.contact-item{display:flex;align-items:center;gap:18px;padding:22px 26px;transition:.3s}
+.contact-item:hover{transform:translateX(8px);background:var(--glass-strong)}
+.contact-item span{font-size:26px}
+.contact-item p{color:var(--muted);font-size:13px}
 
-  all('.ai-chips button').forEach(function (b) {
-    b.addEventListener('click', function () { ask(b.getAttribute('data-q')); });
-  });
+/* Footer */
+footer{padding:20px 0 40px}
+.footer-box{text-align:center;padding:36px}
+.footer-box p{color:var(--muted)}
+.footer-box small{display:block;margin-top:14px;color:var(--muted);font-size:12px}
 
-  on('#aiSummary', function () {
-    const s = summary();
-    add('Summarise the portfolio', 'user');
-    add(s, 'bot');
-    if (voiceBox && voiceBox.checked) speak(s);
-  });
-
-  on('#aiReadAll', function () {
-    const parts = [
-      get.intro(), get.about(), get.skills(),
-      'Work experience. ' + get.experience(), get.projects(),
-      'Education. ' + get.education(), get.cert(), get.contact()
-    ].filter(Boolean);
-    const full = parts.join(' ');
-    add('Read my whole portfolio aloud', 'user');
-    add(full, 'bot');
-    speak(full);
-  });
-
-  on('#aiStop', function () { if (synth) synth.cancel(); });
-  window.addEventListener('beforeunload', function () { if (synth) synth.cancel(); });
-
-  add("👋 Hi! I read Sinentlantla's portfolio so you don't have to. Tap a button or ask me a question.", 'bot');
-});
+/* Responsive */
+@media(max-width:1000px){
+  .skills-grid{grid-template-columns:repeat(3,1fr)}
+  .nav-links{gap:16px}
+}
+@media(max-width:900px){
+  .nav-links{display:none}
+  .hero,.about-grid,.contact-grid{grid-template-columns:1fr}
+  .projects-grid,.education-grid{grid-template-columns:1fr}
+  .skills-grid{grid-template-columns:repeat(2,1fr)}
+  .cert{flex-direction:column;align-items:flex-start;padding:34px}
+  .experience{grid-template-columns:1fr;gap:12px}
+}
+@media(max-width:600px){
+  .heading h2{font-size:34px}
+  .skills-grid{grid-template-columns:1fr}
+  .section{padding:50px 0}
+  .contact-intro h3,.cert h2{font-size:26px}
+  .ai-box{padding:22px}
+  .ai-now{font-size:17px}
+  .ai-actions .btn{width:100%;text-align:center}
+}
