@@ -119,14 +119,34 @@
   </div>
 </section>
 
-<section class="section container">
-  <div class="glass ai-banner">
-    <div>
-      <span class="pill">🤖 Coming Soon</span>
-      <h2>AI Portfolio Assistant</h2>
-      <p>Don't want to read my portfolio yourself? Let AI read it for you. A planned feature that will answer your questions about my skills, projects and experience.</p>
+<section id="assistant" class="section container">
+  <div class="heading"><p>Don't want to read? Let AI read it for you</p><h2>AI Portfolio Assistant</h2></div>
+  <div class="glass ai-box">
+    <div class="ai-top">
+      <div class="ai-title"><span class="ai-dot"></span> Portfolio Assistant</div>
+      <label class="ai-voice"><input type="checkbox" id="aiVoice"> 🔊 Voice replies</label>
     </div>
-    <span class="btn btn-disabled">Coming Soon</span>
+
+    <div class="ai-actions">
+      <button type="button" class="btn btn-primary" id="aiReadAll">▶ Read my whole portfolio aloud</button>
+      <button type="button" class="btn btn-glass" id="aiSummary">📝 Summarise it for me</button>
+      <button type="button" class="btn btn-glass" id="aiStop">⏹ Stop</button>
+    </div>
+
+    <div class="ai-messages" id="aiMessages" aria-live="polite"></div>
+
+    <div class="ai-chips">
+      <button type="button" data-q="What are your skills?">Skills</button>
+      <button type="button" data-q="What projects have you built?">Projects</button>
+      <button type="button" data-q="Tell me about your education">Education</button>
+      <button type="button" data-q="What is your work experience?">Experience</button>
+      <button type="button" data-q="How can I contact you?">Contact</button>
+    </div>
+
+    <div class="ai-input">
+      <input type="text" id="aiInput" placeholder="Ask anything about Sinentlantla...">
+      <button type="button" class="btn btn-primary" id="aiSend">Send</button>
+    </div>
   </div>
 </section>
 
@@ -186,5 +206,6 @@
   </div>
 </footer>
 
+<script src="script.js"></script>
 </body>
 </html>
